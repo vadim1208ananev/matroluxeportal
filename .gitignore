@@ -1,0 +1,6 @@
+.idea
+.well-known
+/common/config/main-local.php
+/common/config/params-local.php
+/frontend/runtime
+/frontend/web/images
