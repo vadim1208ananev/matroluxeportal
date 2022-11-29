@@ -3,4 +3,4 @@
 /common/config/main-local.php
 /common/config/params-local.php
 /runtime
-/fronted/web/images
+/frontend/web/images
