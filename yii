@@ -1,0 +1,582 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\DomCrawler\Crawler;
+use common\models\Attr;
+use common\models\AttrDesc;
+use common\models\AttrGroup;
+use common\models\AttrGroupDesc;
+use common\models\Product;
+use common\models\ProductAttr;
+use common\models\ProductDesc;
+use common\models\Size;
+use common\models\SizeDesc;
+use common\models\ProductSize;
+use rico\yii2images\models\Image;
+
+/**
+ * Yii console bootstrap file.
+ */
+
+defined('YII_DEBUG') or define('YII_DEBUG', true);
+defined('YII_ENV') or define('YII_ENV', 'dev');
+
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';
+require __DIR__ . '/common/config/bootstrap.php';
+require __DIR__ . '/console/config/bootstrap.php';
+
+$config = yii\helpers\ArrayHelper::merge(
+    require __DIR__ . '/common/config/main.php',
+    require __DIR__ . '/common/config/main-local.php',
+    require __DIR__ . '/console/config/main.php',
+    require __DIR__ . '/console/config/main-local.php'
+);
+
+$application = new yii\console\Application($config);
+$exitCode = $application->run();
+//exit($exitCode);
+
+const SIZE_AD_ID = 1;
+const CATEGORY_AG_ID = 1;
+const CATEGORY_ID = 1;
+const UA = 'ua';
+const RU = 'ru';
+const ALPHA_UA = [
+    'А', 'а', 'Б', 'б', 'В', 'в', 'Г', 'г', 'Ґ', 'ґ',
+    'Д', 'д', 'Е', 'е', 'Є', 'є', 'Ж', 'ж', 'З', 'з',
+    'И', 'и', 'І', 'і', 'Ї', 'ї', 'Й', 'й', 'К', 'к',
+    'Л', 'л', 'М', 'м', 'Н', 'н', 'О', 'о', 'П', 'п',
+    'Р', 'р', 'С', 'с', 'Т', 'т', 'У', 'у', 'Ф', 'ф',
+    'Х', 'х', 'Ц', 'ц', 'Ч', 'ч', 'Ш', 'ш', 'Щ', 'щ',
+    'Ю', 'ю', 'Я', 'я', 'ь'
+];
+
+const ALPHA_ENUA = [
+    'A', 'a', 'B', 'b', 'V', 'v', 'H', 'h', 'G', 'g',
+    'D', 'd', 'E', 'e', 'Ye', 'ye', 'Zh', 'zh', 'Z', 'z',
+    'Y', 'y', 'I', 'i', 'Yi', 'yi', 'Y', 'y', 'K', 'k',
+    'L', 'l', 'M', 'm', 'N', 'n', 'O', 'o', 'P', 'p',
+    'R', 'r', 'S', 's', 'T', 't', 'U', 'u', 'F', 'f',
+    'Kh', 'kh', 'Ts', 'ts', 'Ch', 'ch', 'Sh', 'sh', 'Shch', 'shch',
+    'Yu', 'yu', 'Ya', 'ya', ''
+];
+
+const ALPHA_RU = [
+    'А', 'а', 'Б', 'б', 'В', 'в',
+    'Г', 'г', 'Д', 'д', 'Е', 'е',
+    'Ё', 'ё', 'Ж', 'ж', 'З', 'з',
+    'И', 'и', 'Й', 'й', 'К', 'к',
+    'Л', 'л', 'М', 'м', 'Н', 'н',
+    'О', 'о', 'П', 'п', 'Р', 'р',
+    'С', 'с', 'Т', 'т', 'У', 'у',
+    'Ф', 'ф', 'Х', 'х', 'Ц', 'ц',
+    'Ч', 'ч', 'Ш', 'ш', 'Щ', 'щ',
+    'Ъ', 'ъ', 'Ы', 'ы', 'Ь', 'ь',
+    'Э', 'э', 'Ю', 'ю', 'Я', 'я'];
+
+
+const ALPHA_ENRU = [
+    'A', 'a', 'B', 'b', 'V', 'v',
+    'G', 'g', 'D', 'd', 'E', 'e',
+    'Yo', 'yo', 'Zh', 'zh', 'Z', 'z',
+    'I', 'i', 'Y', 'y', 'K', 'k',
+    'L', 'l', 'M', 'm', 'N', 'n',
+    'O', 'o', 'P', 'p', 'R', 'r',
+    'S', 's', 'T', 't', 'U', 'u',
+    'F', 'f', 'H', 'h', 'C', 'c',
+    'Ch', 'ch', 'Sh', 'sh', 'Shch', 'shch',
+    '', '', 'Y', 'y', '', '',
+    'E', 'e', 'Yu', 'yu', 'Ya', 'ya'
+];
+
+function first($array)
+{
+    return reset($array);
+}
+
+function reduce(callable $func, array $array, $initial = null)
+{
+    return array_reduce($array, $func, $initial);
+}
+
+function getHtml($url)
+{
+    $file = __DIR__ . '/cache/' . md5($url);
+    if (file_exists($file)) {
+        return file_get_contents($file);
+    } else {
+        $html = file_get_contents($url);
+        file_put_contents($file, $html);
+        return $html;
+    }
+}
+
+function getPaginationMaxNumber($crawler)
+{
+    return max(first($crawler->filter('ul.pagination li:nth-last-of-type(3) a')
+        ->each(function (Crawler $elem) {
+            return intval($elem->text());
+        })), 1);
+}
+
+function getPages($crawler, $url)
+{
+    return array_map(function ($n) use ($crawler, $url) {
+        return $url . ($n == 1 ? '' : '?page=' . $n);
+    }, range(1, getPaginationMaxNumber($crawler)));
+}
+
+function crawler($href)
+{
+    return new Crawler(getHtml($href));
+}
+
+function getPath($href)
+{
+    $path = parse_url($href)['path'];
+    if ($path[0] == '/') {
+        return ltrim($path, '/');
+    }
+    return '';
+}
+
+function getSubs($subs)
+{
+    return $subs->each(function (Crawler $sub) {
+        $href = $sub->filter('a')->link()->getUri();
+        return [
+            'href' => $href,
+            'url' => getPath($href),
+            'title' => $sub->filter('a')->text()
+        ];
+    });
+}
+
+function getProducts($crawler)
+{
+    return $crawler->filter('.products_category .product-layout')
+        ->each(function (Crawler $elem) {
+//            $id = $elem->attr('data-product');
+            $link = $elem->filter('a');
+            $htmlProduct = crawler($link->attr('href'));
+            $product = $htmlProduct->filter('meta[itemprop="sku"]');
+            $code = $product->attr('content');
+            $images = $htmlProduct->filter('#owl-images .item')
+                ->each(function (Crawler $elem) {
+                    return $elem->filter('a')->link()->getUri();
+                });
+            if (!$images) {
+                $images[] = $htmlProduct->filter('.main-image')->link()->getUri();
+            }
+            $sizes = $elem->filter('.options > option')
+                ->each(function (Crawler $size) {
+                    return [
+                        'url' => trim($size->html()),
+//                        'width' => $size->attr('data-width'),
+//                        'length' => $size->attr('data-length')
+                    ];
+                });
+            return [
+//                'id' => $id,
+                'code' => $code,
+                'href' => $link->attr('href'),
+                'url' => getPath($link->attr('href')),
+                'title' => $elem->filter('a img')->attr('title'),
+                'images' => $images,
+                'sizes' => $sizes
+            ];
+        });
+
+}
+
+function addAttrGroup($elem)
+{
+    $m = AttrGroup::findOne(['name' => $elem['title'], 'url' => $elem['url']]);
+    if (!$m) {
+        $m = new AttrGroup();
+        $m->name = $elem['title'];
+        $m->url = $elem['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->attr_group_id;
+}
+
+function addAttrGroupDesc($attrGroupId, $elem)
+{
+    $m = AttrGroupDesc::findOne(['attr_group_id' => $attrGroupId, 'name' => $elem['title']]);
+    if (!$m) {
+        $m = new AttrGroupDesc();
+        $m->attr_group_id = $attrGroupId;
+        $m->lang_id = RU;
+        $m->name = $elem['title'];
+        $m->save();
+    }
+
+}
+
+function addAttr($sub, $categoryAgId = CATEGORY_AG_ID)
+{
+    $m = Attr::findOne(['attr_group_id' => $categoryAgId, 'name' => $sub['title'], 'url' => $sub['url']]);
+    if (!$m) {
+        $m = new Attr();
+        $m->attr_group_id = $categoryAgId;
+        $m->name = $sub['title'];
+        $m->url = $sub['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->attr_id;
+}
+
+function addAttrDesc($sub, $attrId)
+{
+    $m = AttrDesc::findOne($attrId);
+    if (!$m) {
+        $m = new AttrDesc();
+        $m->attr_id = $attrId;
+        $m->lang_id = RU;
+        $m->name = $sub['title'];
+        $m->save();
+    }
+}
+
+function addProduct($product)
+{
+    $m = Product::findOne(['name' => $product['title'], 'url' => $product['url']]);
+    if (!$m) {
+        $m = new Product();
+        $m->category_id = CATEGORY_ID;
+        $m->name = $product['title'];
+        $m->url = $product['url'];
+        $m->code = $product['code'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+//    } else {
+//        $m->code = $product['code'];
+//        $m->save();
+    }
+    return $m->product_id;
+}
+
+function addProductDesc($productId, $product)
+{
+    $m = ProductDesc::findOne($productId);
+    if (!$m) {
+        $m = new ProductDesc();
+        $m->product_id = $productId;
+        $m->lang_id = RU;
+        $m->name = $product['title'];
+        $m->save();
+    }
+}
+
+function addProductAttr($attrId, $productId)
+{
+    $m = ProductAttr::findOne(['attr_id' => $attrId, 'product_id' => $productId]);
+    if (!$m) {
+        $m = new ProductAttr();
+        $m->attr_id = $attrId;
+        $m->product_id = $productId;
+        $m->save();
+    }
+}
+
+function addSize($size)
+{
+    $m = Size::findOne(['name' => $size['url'], 'url' => $size['url']]);
+    if (!$m) {
+        $m = new Size();
+        $m->name = $size['url'];
+        $m->url = $size['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->size_id;
+}
+
+function addSizeDesc($sizeId, $size)
+{
+    $m = SizeDesc::findOne(['size_id' => $sizeId, 'lang_id' => RU, 'name' => $size['url']]);
+    if (!$m) {
+        $m = new SizeDesc();
+        $m->size_id = $sizeId;
+        $m->lang_id = RU;
+        $m->name = $size['url'];
+        $m->save();
+    }
+}
+
+function addProductSize($productId, $sizeId, $product)
+{
+    $m = ProductSize::findOne(['product_id' => $productId, 'size_id' => $sizeId]);
+    if (!$m) {
+        $m = new ProductSize();
+        $m->product_id = $productId;
+        $m->size_id = $sizeId;
+        $m->code = $product['code'];
+        $m->save();
+    }
+}
+
+function addImages($productId, $product)
+{
+    $m = Product::findOne($productId);
+    $array = explode('\\', get_class($m->getImage()));
+    $modelName = end($array);
+    if ($m->getImage() !== null && $modelName !== 'PlaceHolder') {
+        return;
+    }
+    foreach ($product['images'] as $k => $url) {
+        $file = __DIR__ . '/cache/' . basename($url);
+        file_put_contents($file, file_get_contents($url));
+        $m->attachImage($file, $k == 0 ? true : null);
+        unlink($file);
+    }
+}
+
+function addDb($sub, $products)
+{
+//    $attrGroupId = addAttrGroup($sub);
+//    addAttrGroupDesc();
+//    $attrId = addAttr($sub);
+//    addAttrDesc($sub, $attrId);
+    foreach ($products as $product) {
+        $productId = addProduct($product);
+//        addProductDesc($productId, $product);
+//        addProductAttr($attrId, $productId);
+//        foreach ($product['sizes'] as $size) {
+//            $sizeId = addSize($size);
+//            addSizeDesc($sizeId, $size);
+//            addProductSize($productId, $sizeId, $product);
+//        }
+        addImages($productId, $product);
+    }
+}
+
+function addDb2($elems)
+{
+    foreach ($elems as $elem) {
+        $attrGroupId = addAttrGroup($elem);
+        addAttrGroupDesc($attrGroupId, $elem);
+        $attrId = addAttr(['title' => $elem['attrTitle'], 'url' => $elem['attrUrl']], $attrGroupId);
+        addAttrDesc(['title' => $elem['attrTitle']], $attrId);
+    }
+}
+
+function addDb3($elems)
+{
+    foreach ($elems as $elem) {
+        $products = [];
+        $attrGroupId = addAttrGroup($elem);
+        $attrId = addAttr(['title' => $elem['attrTitle'], 'url' => $elem['attrUrl']], $attrGroupId);
+        $crawler = crawler($elem['href']);
+        $pages = getPages($crawler, $elem['href']);
+        foreach ($pages as $page) {
+            $crawler = crawler($page);
+            $products = array_merge($products, getProducts($crawler));
+        }
+        foreach ($products as $p) {
+            $m = Product::findOne(['code' => $p['code']]);
+            addProductAttr($attrId, $m->product_id);
+        }
+    }
+}
+
+function getAttrGroupName($str)
+{
+    $pos = strrpos($str, ' ');
+    return strReplace(substr($str, $pos + 11));
+}
+
+function strReplace($str)
+{
+    $str = str_replace(['_', '+', ' ', '-&amp;-'], '-', trim($str));
+    return mb_strtolower(str_replace(ALPHA_RU, ALPHA_ENRU, $str));
+}
+
+function products()
+{
+    $crawler = crawler('https://matroluxe.ua/matrasy-ortopedicheskie');
+    $subs = $crawler->filter('.refine_categories > a');
+    $subs->each(function ($sub) {
+        $products = [];
+        $crawler = crawler($sub->link()->getUri());
+        $pages = getPages($crawler, $sub->link()->getUri());
+        foreach ($pages as $page) {
+            $crawler = crawler($page);
+            $products = array_merge($products, getProducts($crawler));
+        }
+        addDb(['title' => $sub->filter('img')->attr('title'), 'url' => getPath($sub->link()->getUri())], $products);
+    });
+}
+
+function attrs()
+{
+    $crawler = crawler('https://matroluxe.ua/matrasy-ortopedicheskie');
+    $blocks = $crawler->filter('.list-group .ocf-option-values');
+    $blocks->each(function ($group) {
+        $title = trim($group->filter('.ocf-option-name')->html());
+        $url = strReplace($title);
+        $attrs = $group->filter('label');
+        $elems = $attrs->each(function ($item) use ($title, $url) {
+            $attrTitle = trim(preg_split("/<input[\s\S]+>/", $item->filter('a')->html())[1]);
+            return [
+                'title' => $title,
+                'url' => $url,
+                'href' => $item->filter('a')->link()->getUri(),
+                'attrTitle' => $attrTitle,
+                'attrUrl' => strReplace($attrTitle)
+            ];
+        });
+//        addDb2($elems);
+        addDb3($elems);
+    });
+}
+
+function setProductSearch()
+{
+    $ags = AttrGroup::find()
+        ->joinWith('attrs')
+        ->where(['not in', 'attr_group.attr_group_id', [4, 8]])
+        ->asArray()
+        ->all();
+    $products = Product::find()
+        ->where(['status' => 1])
+        ->all();
+    foreach ($products as $p) {
+        $info = $p->name . ',' . $p->code . ',';
+        $pa = $p->productAttrs;
+        foreach ($p->productAttrs as $pa) {
+            foreach ($ags as $ag) {
+                foreach ($ag['attrs'] as $a) {
+                    if ($pa->attr_id == $a['attr_id']) {
+                        if ($a['name'] == 'Нет')
+                            break 2;
+                        if ($a['name'] == 'Да') {
+                            $info .= $ag['name'] . ',';
+                        } else {
+                            $info .= $a['name'] . ',';
+                        }
+                        break 2;
+                    }
+                }
+            }
+        }
+        $info = rtrim($info, ',');
+        $ps = new \common\models\ProductSearch();
+        $ps->product_id = $p->product_id;
+        $ps->search = $info;
+        $ps->save();
+        //        echo $p->product_id . '   ' . $info . PHP_EOL;
+
+    }
+
+
+}
+
+function setProduct1cIds()
+{
+    if (($handle = fopen("/home/oleg-a/Downloads/products.csv", "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $code = $data[2];
+            $id = $data[5];
+            if (!$id)
+                continue;
+            $model = Product::find()
+                ->where(['code' => $code])
+                ->one();
+            if ($model && !$model['1c_id']) {
+                $model['1c_id'] = $id;
+                $model->save();
+
+            }
+        }
+        fclose($handle);
+    }
+}
+
+function setSize1cIds()
+{
+    if (($handle = fopen("/home/oleg-a/Downloads/sizes.csv", "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $pId = $data[0];
+            $sId = $data[1];
+            $id = $data[4];
+            if (!$id)
+                continue;
+            $model = ProductSize::find()
+                ->where(['product_id' => $pId, 'size_id' => $sId])
+                ->one();
+            if ($model && !$model['1c_id']) {
+                $model['1c_id'] = $id;
+                $model->save();
+            }
+        }
+        fclose($handle);
+    }
+}
+
+function setSizePrice()
+{
+    if (($handle = fopen("/home/oleg-a/Downloads/sizes.csv", "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $pId = $data[2];
+            $sId = $data[4];
+            $price = $data[5];
+            $product = Product::find()
+                ->where(['1c_id' => $pId])
+                ->one();
+            if ($product) {
+                $model = ProductSize::find()
+                    ->where(['product_id' => $product->product_id, '1c_id' => $sId])
+                    ->one();
+                if ($model && !$model->price && $price) {
+                    $model['price'] = intval(str_replace(mb_chr(160), '', $price));
+                    $model->save();
+                }
+            }
+        }
+        fclose($handle);
+    }
+}
+
+function setSizePriceForSquare()
+{
+    if (($handle = fopen("/home/oleg-a/Downloads/products.csv", "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $pId = $data[5];
+            $price = $data[7];
+            $product = Product::find()
+                ->where(['1c_id' => $pId])
+                ->one();
+            if ($product) {
+                $product->price_square_meter = intval(str_replace(mb_chr(160), '', $price));
+                $product->save();
+            }
+        }
+        fclose($handle);
+    }
+}
+
+/*
+use yii2advanced;
+select product_size.product_id, product_size.size_id, product.1c_id, size.name
+from product_size
+left join product
+on product_size.product_id = product.product_id
+left join size
+on product_size.size_id = size.size_id
+where product.`1c_id` is not null;
+;
+*/
+
+//products();
+//attrs();
+//setProductSearch();
+
+//setProduct1cIds();
+//setSize1cIds();
+setSizePrice();
+//setSizePriceForSquare();

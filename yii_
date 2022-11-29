@@ -1,0 +1,446 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\DomCrawler\Crawler;
+use common\models\Attr;
+use common\models\AttrDesc;
+use common\models\AttrGroup;
+use common\models\AttrGroupDesc;
+use common\models\Product;
+use common\models\ProductAttr;
+use common\models\ProductDesc;
+use common\models\Size;
+use common\models\SizeDesc;
+use common\models\ProductSize;
+use rico\yii2images\models\Image;
+
+/**
+ * Yii console bootstrap file.
+ */
+
+defined('YII_DEBUG') or define('YII_DEBUG', true);
+defined('YII_ENV') or define('YII_ENV', 'dev');
+
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';
+require __DIR__ . '/common/config/bootstrap.php';
+require __DIR__ . '/console/config/bootstrap.php';
+
+$config = yii\helpers\ArrayHelper::merge(
+    require __DIR__ . '/common/config/main.php',
+    require __DIR__ . '/common/config/main-local.php',
+    require __DIR__ . '/console/config/main.php',
+    require __DIR__ . '/console/config/main-local.php'
+);
+
+$application = new yii\console\Application($config);
+$exitCode = $application->run();
+//exit($exitCode);
+
+const SIZE_AD_ID = 1;
+const CATEGORY_AG_ID = 2;
+const CATEGORY_ID = 1;
+const UA = 'ua';
+const ALPHA_UA = [
+    'А', 'а', 'Б', 'б', 'В', 'в', 'Г', 'г', 'Ґ', 'ґ',
+    'Д', 'д', 'Е', 'е', 'Є', 'є', 'Ж', 'ж', 'З', 'з',
+    'И', 'и', 'І', 'і', 'Ї', 'ї', 'Й', 'й', 'К', 'к',
+    'Л', 'л', 'М', 'м', 'Н', 'н', 'О', 'о', 'П', 'п',
+    'Р', 'р', 'С', 'с', 'Т', 'т', 'У', 'у', 'Ф', 'ф',
+    'Х', 'х', 'Ц', 'ц', 'Ч', 'ч', 'Ш', 'ш', 'Щ', 'щ',
+    'Ю', 'ю', 'Я', 'я', 'ь'
+];
+
+const ALPHA_EN = [
+    'A', 'a', 'B', 'b', 'V', 'v', 'H', 'h', 'G', 'g',
+    'D', 'd', 'E', 'e', 'Ye', 'ye', 'Zh', 'zh', 'Z', 'z',
+    'Y', 'y', 'I', 'i', 'Yi', 'yi', 'Y', 'y', 'K', 'k',
+    'L', 'l', 'M', 'm', 'N', 'n', 'O', 'o', 'P', 'p',
+    'R', 'r', 'S', 's', 'T', 't', 'U', 'u', 'F', 'f',
+    'Kh', 'kh', 'Ts', 'ts', 'Ch', 'ch', 'Sh', 'sh', 'Shch', 'shch',
+    'Yu', 'yu', 'Ya', 'ya', ''
+];
+
+function first($array)
+{
+    return reset($array);
+}
+
+function reduce(callable $func, array $array, $initial = null)
+{
+    return array_reduce($array, $func, $initial);
+}
+
+function getHtml($url)
+{
+    $file = __DIR__ . '/cache/' . md5($url);
+    if (file_exists($file)) {
+        return file_get_contents($file);
+    } else {
+        $html = file_get_contents($url);
+        file_put_contents($file, $html);
+        return $html;
+    }
+}
+
+function getPaginationMaxNumber($crawler)
+{
+    return max(first($crawler->filter('.paginationControl a:nth-last-of-type(2)')
+        ->each(function (Crawler $elem) {
+            return intval($elem->text());
+        })), 1);
+}
+
+function getPages($crawler, $url)
+{
+    return array_map(function ($n) use ($crawler, $url) {
+        return $url . ($n == 1 ? '' : '?page=' . $n);
+    }, range(1, getPaginationMaxNumber($crawler)));
+}
+
+function crawler($href)
+{
+    return new Crawler(getHtml($href));
+}
+
+function getPath($href)
+{
+    $path = parse_url($href)['path'];
+    if ($path[0] == '/') {
+        return ltrim($path, '/');
+    }
+    return '';
+}
+
+function getSubs($subs)
+{
+    return $subs->each(function (Crawler $sub) {
+        $href = $sub->filter('a')->link()->getUri();
+        return [
+            'href' => $href,
+            'url' => getPath($href),
+            'title' => $sub->filter('a')->text()
+        ];
+    });
+}
+
+function getProducts($crawler)
+{
+    return $crawler->filter('.product-block')
+        ->each(function (Crawler $elem) {
+            $id = $elem->attr('data-product');
+            $link = $elem->filter('a');
+            $htmlProduct = crawler($link->attr('href'));
+            $product = $htmlProduct->filter('meta[itemprop="sku"]');
+            $code = $product->attr('content');
+            $images = $htmlProduct->filter('.sliderkit-panels .sliderkit-panel')
+                ->each(function (Crawler $elem) {
+                    return $elem->filter('a')->link()->getUri();
+                });
+            $sizes = $link->filter('select option')
+                ->each(function (Crawler $size) {
+                    return [
+                        'url' => trim($size->html()),
+                        'width' => $size->attr('data-width'),
+                        'length' => $size->attr('data-length')
+                    ];
+                });
+            return [
+                'id' => $id,
+                'code' => $code,
+                'href' => $link->attr('href'),
+                'url' => getPath($link->attr('href')),
+                'title' => $link->filter('.title')->text(),
+                'images' => $images,
+                'sizes' => $sizes
+            ];
+        });
+
+}
+
+function addAttrGroup($elem)
+{
+    $m = AttrGroup::findOne(['name' => $elem['title'], 'url' => $elem['url']]);
+    if (!$m) {
+        $m = new AttrGroup();
+        $m->name = $elem['title'];
+        $m->url = $elem['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->attr_group_id;
+}
+
+function addAttrGroupDesc($attrGroupId, $elem)
+{
+    $m = AttrGroupDesc::findOne(['attr_group_id' => $attrGroupId, 'name' => $elem['title']]);
+    if (!$m) {
+        $m = new AttrGroupDesc();
+        $m->attr_group_id = $attrGroupId;
+        $m->lang_id = UA;
+        $m->name = $elem['title'];
+        $m->save();
+    }
+
+}
+
+function addAttr($sub, $categoryAgId = CATEGORY_AG_ID)
+{
+    $m = Attr::findOne(['attr_group_id' => $categoryAgId, 'name' => $sub['title'], 'url' => $sub['url']]);
+    if (!$m) {
+        $m = new Attr();
+        $m->attr_group_id = $categoryAgId;
+        $m->name = $sub['title'];
+        $m->url = $sub['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->attr_id;
+}
+
+function addAttrDesc($sub, $attrId)
+{
+    $m = AttrDesc::findOne($attrId);
+    if (!$m) {
+        $m = new AttrDesc();
+        $m->attr_id = $attrId;
+        $m->lang_id = UA;
+        $m->name = $sub['title'];
+        $m->save();
+    }
+}
+
+function addProduct($product)
+{
+    $m = Product::findOne(['name' => $product['title'], 'url' => $product['url']]);
+    if (!$m) {
+        $m = new Product();
+        $m->category_id = CATEGORY_ID;
+        $m->name = $product['title'];
+        $m->url = $product['url'];
+        $m->code = $product['code'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+//    } else {
+//        $m->code = $product['code'];
+//        $m->save();
+    }
+    return $m->product_id;
+}
+
+function addProductDesc($productId, $product)
+{
+    $m = ProductDesc::findOne($productId);
+    if (!$m) {
+        $m = new ProductDesc();
+        $m->product_id = $productId;
+        $m->lang_id = UA;
+        $m->name = $product['title'];
+        $m->save();
+    }
+}
+
+function addProductAttr($attrId, $productId)
+{
+    $m = ProductAttr::findOne(['attr_id' => $attrId, 'product_id' => $productId]);
+    if (!$m) {
+        $m = new ProductAttr();
+        $m->attr_id = $attrId;
+        $m->product_id = $productId;
+        $m->save();
+    }
+}
+
+function addSize($size)
+{
+    $m = Size::findOne(['name' => $size['url'], 'url' => $size['url']]);
+    if (!$m) {
+        $m = new Size();
+        $m->name = $size['url'];
+        $m->url = $size['url'];
+        $m->save();
+        return Yii::$app->db->getLastInsertID();
+    }
+    return $m->size_id;
+}
+
+function addSizeDesc($sizeId, $size)
+{
+    $m = SizeDesc::findOne(['size_id' => $sizeId, 'lang_id' => UA, 'name' => $size['url']]);
+    if (!$m) {
+        $m = new SizeDesc();
+        $m->size_id = $sizeId;
+        $m->lang_id = UA;
+        $m->name = $size['url'];
+        $m->save();
+    }
+}
+
+function addProductSize($productId, $sizeId, $product)
+{
+    $m = ProductSize::findOne(['product_id' => $productId, 'size_id' => $sizeId]);
+    if (!$m) {
+        $m = new ProductSize();
+        $m->product_id = $productId;
+        $m->size_id = $sizeId;
+        $m->code = $product['code'];
+        $m->save();
+    }
+}
+
+function addImages($productId, $product)
+{
+    $m = Product::findOne($productId);
+    $array = explode('\\', get_class($m->getImage()));
+    $modelName = end($array);
+    if ($m->getImage() !== null && $modelName !== 'PlaceHolder') {
+        return;
+    }
+    foreach ($product['images'] as $k => $url) {
+        $file = __DIR__ . '/cache/' . basename($url);
+        file_put_contents($file, file_get_contents($url));
+        $m->attachImage($file, $k == 0 ? true : null);
+        unlink($file);
+    }
+}
+
+function addDb($sub, $products)
+{
+    $attrGroupId = addAttrGroup($sub);
+//    addAttrGroupDesc();
+    $attrId = addAttr($sub);
+    addAttrDesc($sub, $attrId);
+    foreach ($products as $product) {
+        $productId = addProduct($product);
+        addProductDesc($productId, $product);
+        addProductAttr($attrId, $productId);
+        foreach ($product['sizes'] as $size) {
+            $sizeId = addSize($size);
+            addSizeDesc($sizeId, $size);
+            addProductSize($productId, $sizeId, $product);
+        }
+        addImages($productId, $product);
+    }
+}
+
+function addDb2($elems)
+{
+    foreach ($elems as $value) {
+        foreach ($value as $elem) {
+            $attrGroupId = addAttrGroup($elem);
+            addAttrGroupDesc($attrGroupId, $elem);
+            $attrId = addAttr(['title' => $elem['attrTitle'], 'url' => $elem['attrUrl']], $attrGroupId);
+            addAttrDesc(['title' => $elem['attrTitle']], $attrId);
+        }
+    }
+}
+
+function addDb3($elems)
+{
+    foreach ($elems as $value) {
+        foreach ($value as $elem) {
+            $products = [];
+            $attrGroupId = addAttrGroup($elem);
+            $attrId = addAttr(['title' => $elem['attrTitle'], 'url' => $elem['attrUrl']], $attrGroupId);
+            $crawler = crawler($elem['href']);
+            $pages = getPages($crawler, $elem['href']);
+            foreach ($pages as $page) {
+                $crawler = crawler($page);
+                $products = array_merge($products, getProducts($crawler));
+            }
+            foreach ($products as $p) {
+                $m = Product::findOne(['code' => $p['code']]);
+                addProductAttr($attrId, $m->product_id);
+            }
+
+        }
+    }
+}
+
+function getAttrGroupName($str)
+{
+    $pos = strrpos($str, ' ');
+    return strReplace(substr($str, $pos + 11));
+}
+
+function strReplace($str)
+{
+    $str = str_replace(['_', '+', ' ', '-&amp;-'], '-', trim($str));
+    return mb_strtolower(str_replace(ALPHA_UA, ALPHA_EN, $str));
+}
+
+function products()
+{
+    $crawler = crawler('https://matroluxe.com/');
+
+    $cats = $crawler->filter('.dropdown-menu-wrapper > ul.catalog-drop-list > .catalog-drop-item');
+    $catFirst = $cats->first(); //ОРТОПЕДИЧНІ МАТРАЦИ
+    //$catFirstHref = $catFirst->filter('a')->first()->link()->getUri();
+
+    $subs = $catFirst->filter('ul.sub-list .sub-item');
+    $subs = getSubs($subs);
+
+    //$subFirst = $subs->first(); //ПРУЖИННІ МАТРАЦИ
+    //$subFirstHref = $subFirst->filter('a')->link()->getUri();
+    //$subFirstTitle = $subFirst->filter('a')->text();
+
+    foreach ($subs as $sub) {
+        $products = [];
+        $crawler = crawler($sub['href']); //ПРУЖИННІ МАТРАЦИ
+        $pages = getPages($crawler, $sub['href']);
+        foreach ($pages as $page) {
+            $crawler = crawler($page);
+            $products = array_merge($products, getProducts($crawler));
+        }
+        addDb(['title' => 1, 'url' => getPath()], $products);
+    }
+}
+
+function attrs()
+{
+    $crawler = crawler('https://matroluxe.com/');
+
+    $cats = $crawler->filter('.dropdown-menu-wrapper > ul.catalog-drop-list > .catalog-drop-item');
+    $catFirst = $cats->first(); //ОРТОПЕДИЧНІ МАТРАЦИ
+
+    $subs = $catFirst->filter('ul.sub-list .sub-item');
+    $subs = getSubs($subs);
+
+    foreach ($subs as $sub) {
+        $elems = [];
+        $crawler = crawler($sub['href']); //ПРУЖИННІ МАТРАЦИ
+        $blocks = $crawler->filter('.filter-block .column-filter-block');
+        $elems = $blocks->each(function ($item) {
+            $title = $item->filter('.title-attribute')->html();
+            $class = $item->filter('.title-attribute')->attr('class');
+            $url = getAttrGroupName($class);
+            $attrs = $item->filter('.toggle-view .attribute-checkbox');
+            return $attrs->each(function ($item) use ($title, $url) {
+                return [
+                    'title' => trim($title),
+                    'url' => $url,
+                    'href' => $item->filter('a')->link()->getUri(),
+                    'attrTitle' => trim($item->filter('a')->html()),
+                    'attrUrl' => strReplace($item->filter('a')->html())
+                ];
+            });
+        });
+        $k = 1;
+//        addDb2($elems);
+        addDb3($elems);
+    }
+}
+
+attrs();
+
+
+
+
+
+
+
+
+
+
+
+

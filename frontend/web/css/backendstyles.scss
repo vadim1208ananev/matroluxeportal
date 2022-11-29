@@ -1,0 +1,23 @@
+.item-list {
+  border-bottom: 1px solid #DADADA;
+}
+
+.item-list:hover {
+  background-color: #F5F5F5;
+}
+
+.content li + li {
+  margin-top: unset !important;
+}
+
+.breadcrumb {
+  padding: unset;
+  margin-bottom: unset;
+  list-style: unset;
+  background-color: unset;
+  border-radius: unset;
+}
+
+.markers label:not(:last-child) {
+  margin-right: 1em;
+}

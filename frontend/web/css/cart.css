@@ -1,0 +1,40 @@
+.cart-form .cart-form__item.active {
+  display: block;
+}
+.cart-form .cart-form__item:not(.active) {
+  display: none;
+}
+
+.cart__delivery {
+  display: none;
+}
+.cart__delivery.active {
+  display: block;
+}
+
+.letter-search {
+  display: none;
+  max-height: 276px;
+  overflow-y: scroll;
+  position: absolute;
+  background-color: #fff;
+  z-index: 1;
+}
+.letter-search .letter-search__item {
+  padding: 0 10px;
+  margin: 5px 0;
+}
+.letter-search .column[data-search-handler] {
+  position: relative;
+}
+.letter-search .letter-search__area {
+  font-weight: bold;
+}
+.letter-search .letter-search__city-item:not(.letter-search__not-found),
+.letter-search .letter-search__warehouse-item:not(.letter-search__not-found),
+.letter-search .letter-search__street-item:not(.letter-search__not-found) {
+  text-indent: 1.5em;
+  cursor: pointer;
+}
+
+/*# sourceMappingURL=cart.css.map */

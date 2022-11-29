@@ -1,0 +1,11 @@
+RewriteEngine on
+#RewriteBase /
+
+RewriteCond %{REQUEST_URI} ^/(api)
+RewriteRule ^.*$ index-api.php
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# в противном случае перенаправляем на index.php
+RewriteRule . index.php
