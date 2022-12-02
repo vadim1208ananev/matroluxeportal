@@ -23,6 +23,7 @@ class ProductSize extends ActiveRecord
             ->orderBy(['product_id' => SORT_ASC])
             ->asArray()
             ->all();
+         //   dd($productSizes);
         $sizes = array_reduce($productSizes, function ($carry, $item) {
             $carry[$item['product_id']][$item['size']['sizeDesc']['size_id']] = [
                 'sort_order' => $item['size']['sort_order'],

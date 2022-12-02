@@ -58,7 +58,6 @@ class Attr extends ActiveRecord
     {
         $filter = Yii::$app->request->get('f');
         $filter = $filter ? self::parseFilterUrl($filter) : [];
-
         $attrs = AttrGroup::find()
             ->joinWith('attrGroupDesc')
 //            ->joinWith('attrs')
@@ -77,15 +76,16 @@ class Attr extends ActiveRecord
 //            ->andWhere(['in', 'attr.attr_id', $attrIds])
             ->asArray()
             ->all();
-
-        $attrs = self::getFilledAttrs($attrs);
+        $attrs = self::getFilledAttrs($attrs);     
         $attrs = self::getSortedData($attrs);
+      
         $filter = self::addSortOrderFilter($attrs, $filter);
+
         $filter = self::getSortedData($filter);
         if ($filter) {
             $attrs = self::getDeletedAttrs($attrs, $attrIds);
         }
-
+       
         foreach ($attrs as &$attr) {
             foreach ($attr['attrs'] as &$a) {
                 //f=category=1:bespruzhinnye-matrasy=1,pruzhinnye-matrasy=2;tip-matrasa=2:dvustoronniy=11,odnostoronniy=12
@@ -220,6 +220,7 @@ class Attr extends ActiveRecord
     {
 
         $attrs = array_combine(array_column($attrs, 'attr_group_id'), array_values($attrs));
+      //  dd($attrs);
         foreach ($attrs as $i1 => &$attr) {
             foreach ($attr['attrs'] as $i2 => $a) {
                 $attrs[$i1]['attrs'][$i2]['name'] = $attrs[$i1]['attrDesc'][$i2]['name'];

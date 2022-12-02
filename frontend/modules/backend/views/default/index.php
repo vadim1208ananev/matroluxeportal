@@ -24,5 +24,8 @@ $this->params['breadcrumbs'] = [];
         <button class="button is-primary">
             <?= Html::a('Бонусы', ['bonus/index'], ['class' => 'has-text-white']) ?>
         </button>
+        <button class="button is-primary">
+            <?= Html::a('Рекламации', ['complaint/index'], ['class' => 'has-text-white']) ?>
+        </button>
     </div>
 </div>

@@ -40,6 +40,10 @@ return [
         'type' => 2,
         'description' => 'View map',
     ],
+    'viewComplaint' => [
+        'type' => 2,
+        'description' => 'View complain',
+    ],
     'author' => [
         'type' => 1,
         'children' => [
@@ -52,6 +56,7 @@ return [
     'admin' => [
         'type' => 1,
         'children' => [
+            'viewComplaint',
             'viewOrder',
             'viewSpec',
             'author',
@@ -69,6 +74,13 @@ return [
         'type' => 1,
         'children' => [
             'viewMap',
+        ],
+    ],
+
+    'manager' => [
+        'type' => 1,
+        'children' => [
+            'viewComplaint',
         ],
     ],
 ];

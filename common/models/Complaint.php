@@ -21,6 +21,16 @@ class Complaint extends ActiveRecord
     {
         return $this->hasOne(Product::className(), ['product_id' => 'product_id']);
     }
+    public function getSize()
+    {
+        return $this->hasOne(Size::className(), ['size_id' => 'size_id']);
+    }
+    public function getFio(){
+        return $this->last_name.' '.$this->first_name.' '.$this->middle_name;
+    }
+    public function getTel(){
+        return  $this->phone_prefix.' '.$this->phone;
+    }
 
     public function getProductSize()
     {

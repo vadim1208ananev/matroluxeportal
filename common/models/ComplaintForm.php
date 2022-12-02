@@ -73,7 +73,8 @@ class ComplaintForm extends Model
             [['street', 'street_to'], 'validateStreet', 'skipOnEmpty' => false, 'skipOnError' => false],
             [['building', 'building_to'], 'validateBuilding', 'skipOnEmpty' => false, 'skipOnError' => false],
 
-            [['imageFiles'], 'file', 'skipOnEmpty' => false, 'extensions' => 'png, jpg, jpeg', 'minFiles' => 5, 'maxFiles' => 10],
+            
+            [['imageFiles'], 'file', 'skipOnEmpty' => false, 'extensions' => 'png, jpg, jpeg', 'minFiles' => 1, 'maxFiles' => 10],
         ];
     }
 

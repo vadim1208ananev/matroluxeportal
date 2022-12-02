@@ -65,6 +65,10 @@ return [
                 'backend/users/<user_id:\d+>/orders' => 'backend/user/order',
                 'backend/users/<user_id:\d+>/bonuses' => 'backend/user/bonus',
 
+                'backend/complaints' => 'backend/complaint/index',//new
+                'backend/complaints/send' => 'backend/complaint/send',//new
+                'backend/complaints/<complaint_id:\d+>' => 'backend/complaint/show',//new
+                
                 'backend/products' => 'backend/product/index',
                 'backend/<controller:\w+>/<action:\w+>' => 'backend/<controller>/<action>',
                 '<action:[\w-]+>' => 'site/<action>',
