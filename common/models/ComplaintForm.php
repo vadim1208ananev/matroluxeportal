@@ -29,7 +29,7 @@ class ComplaintForm extends Model
     public $street_ref;
     public $warehouse_ref;
 
-
+    public $product_cm_id;
     //address to
     public $city_to;
     public $street_to;
@@ -62,8 +62,14 @@ class ComplaintForm extends Model
     public function rules()
     {
         return [
-            [['last_name', 'first_name', 'middle_name', 'phone_prefix', 'phone',
-                'delivery_service_id', 'service_type', 'service_type_to', 'delivery_service_id_to', 'product_id', 'size_id', 'purchase_month', 'purchase_year'], 'required'],
+            [['product_cm_id', 'product_id'], 'validateProduct', 'skipOnEmpty' => false, 'skipOnError' => false],
+
+                    [['last_name', 'first_name', 'middle_name', 'phone_prefix', 'phone',
+                'delivery_service_id', 'service_type', 'service_type_to', 'delivery_service_id_to', 
+ //               'product_id',
+//                 'size_id', 
+//                 'attr_ids'
+                 'purchase_month', 'purchase_year'], 'required'],
             [['phone_extra_prefix', 'phone_extra', 'flat', 'city_ref', 'street_ref', 'warehouse_ref', 'same_Address',
                 'flat_to', 'city_ref_to', 'street_ref_to', 'warehouse_ref_to', 'comment'], 'safe'],
             [['phone', 'phone_extra'], 'string', 'min' => 7, 'max' => 7],
@@ -172,15 +178,22 @@ class ComplaintForm extends Model
             }
         }
     }
+    public function validateProduct($attribute, $params)
+    {
+        if ($attribute=='product_id' || $attribute=='product_cm_id') {
+            if (!$this->product_id && !$this->product_cm_id) {
+                $this->addError($attribute, 'Необходимо выбрать хотя-бы один товар из любой категории');
+            }
+        }
+    }
 
     public function upload($complaintId)
     {
         foreach ($this->imageFiles as $file) {
-//                $path = Yii::getAlias('@frontend') . '/web/uploads/' . $this->survey_id . '_' . $file->baseName . '.' . $file->extension;
+            //                $path = Yii::getAlias('@frontend') . '/web/uploads/' . $this->survey_id . '_' . $file->baseName . '.' . $file->extension;
             $path = Yii::getAlias('@frontend') . '/web/uploads/' . $complaintId . '_' . $file->baseName . '.' . $file->extension;
             $file->saveAs($path);
             @chmod($path, 0755);
         }
     }
-
 }

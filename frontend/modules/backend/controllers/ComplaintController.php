@@ -8,6 +8,7 @@ use yii\web\Controller;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use common\models\LoginForm;
+use yii\data\Pagination;
 use yii\web\ForbiddenHttpException;
 
 /**
@@ -33,7 +34,7 @@ class ComplaintController extends Controller
                         'allow' => true,
                     ],
                     [
-                        'actions' => ['logout', 'index', 'show','send'],
+                        'actions' => ['logout', 'index', 'show', 'send'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -70,7 +71,18 @@ class ComplaintController extends Controller
         if (!Yii::$app->user->can('viewComplaint')) {
             throw new ForbiddenHttpException();
         }
-        $data['complaints'] = Complaint::find()->all();
+        $query = Complaint::find()
+            ->orderBy([
+                'complaint_id' => SORT_DESC
+            ]);
+
+        $pages = new Pagination(['totalCount' => $query->count(), 'pageSize' => 4]);
+        $pages->pageSizeParam = false;
+        $complaints = $query->offset($pages->offset)->limit($pages->limit)->all();
+        $data['complaints'] = $complaints;
+        $data['pages'] = $pages;
+
+
 
         return $this->render('index', $data);
     }
@@ -96,27 +108,26 @@ class ComplaintController extends Controller
             'images' => $images,
         ]);
     }
-    public function out($status,$data){
-        $item=[
-            'status'=>$status,
-            'data'=>$data
+    public function out($status, $data)
+    {
+        $item = [
+            'status' => $status,
+            'data' => $data
         ];
         return json_encode($item);
-
     }
 
 
-    public function actionSend(){
-  sleep(3);
-        $post=Yii::$app->request->post();
-        if(isset($post['complaint_id']))
-        {
-           $complaint_id=$post['complaint_id'];
-           return $this->out('ok',$complaint_id);
+    public function actionSend()
+    {
+        sleep(3);
+        $post = Yii::$app->request->post();
+        if (isset($post['complaint_id'])) {
+            $complaint_id = $post['complaint_id'];
+            return $this->out('ok', $complaint_id);
         } else {
-            return $this->out('error',[]);
+            return $this->out('error', []);
         }
-        
     }
 
     /**

@@ -449,23 +449,29 @@ class SiteController extends Controller
 
         if ($request->isPost) {
             $post = $request->post();
-
+     // dd($post,UploadedFile::getInstances($model, 'imageFiles'));
             $model->load($post);
             $model->imageFiles = UploadedFile::getInstances($model, 'imageFiles');
             if ($model->validate()) {
-
+//dd($post,$model);
                 $attributes = array_merge(json_decode(json_encode($post['ComplaintForm']), true), [
                     'delivery_service_id' => $post['delivery_serv'],
                     'delivery_service_id_to' => $post['delivery_serv_to'],
+                    'attr_ids' => json_encode($post['attr_ids']),
                 ]);
+
+           //    dd($attributes,$post);
+
                 unset($attributes['imageFiles']);
                 foreach ($attributes as $index => $attribute) {
+                    if(!$attribute) {continue; }
                     $complaint->{$index} = $attribute;
                 }
                 $complaint->product_name = Product::findOne($attributes['product_id'])->name;
                 $complaint->size_name = Size::findOne($attributes['size_id'])->name;
                 $complaint->cleanIfSameAddress();
                 $complaint->fillInDescription();
+              //  dd($complaint);
                 $complaint->save(false);
 
                 $model->upload($complaint->complaint_id);
@@ -484,10 +490,20 @@ class SiteController extends Controller
             ->asArray()
             ->all(), 'name');
 
-
+            $products_cm = ArrayHelper::getColumn(Product::find()
+            ->where(['category_id' => 3, 'status' => 1])
+            ->indexBy('product_id')
+          //  ->orderBy('name')
+            ->asArray()
+            ->all(), 'name');
+            $products_cm=['Выберите доступный вариант']+$products_cm;
+            $products=['Выберите доступный вариант']+$products;
+          //  array_unshift($products_cm,'Выберите доступный вариант');
+    // dd($products_cm);
         return $this->render('mattressesComplaint', [
             'model' => $model,
             'products' => $products,
+            'products_cm' => $products_cm,
             'months' => ['янв', 'февр', 'март', 'апр', 'май', 'июн', 'июл', 'авг', 'сент', 'окт', 'ноя', 'дек'],
             'years' => range(2010, date('Y')),
         ]);

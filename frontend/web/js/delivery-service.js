@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             ael(document, 'click', this.handleClickSearch);
             ael(s.warehouses, 'focus', this.handleWarehouseFocus);
-            ael(s.product, 'click', this.handleClickProduct);
+         //   ael(s.product, 'click', this.handleClickProduct);
+         ael(s.product, 'change', this.handleClickProduct);
             ael(s.sameAddress, 'click', this.handleClickSameAddress);
             document.querySelectorAll('.delivery__container .service-type input:checked').forEach((elem => deliveryService.handleServiceType.call(elem)));
             deliveryService.handleClickSameAddress.call(s.sameAddress);
@@ -221,5 +222,60 @@ document.addEventListener('DOMContentLoaded', () => {
     (function () {
         deliveryService.init();
     })();
+    //product_cm
 
 });
+var select_cm = document.querySelector('.product_cm');
+var attrs_data = document.querySelector('#data_attrs');
+select_cm.addEventListener('change', function (event) {
+    attrs_data.innerHTML = '';
+    var selected_cm_value = event.target.value
+    if (selected_cm_value == 0) {
+        alert('Выберите доступный вариант');
+        return;
+    }
+    var formdata = new FormData();
+    var csrf_token = yii.getCsrfToken();
+    formdata.append("selected_cm_value", selected_cm_value)
+    formdata.append("_csrf-frontend", csrf_token)
+    var requestOptions = {
+        method: 'POST',
+        body: formdata
+    }
+    fetch('/product/get-product-attributes', requestOptions)
+        .then(res =>
+            res.json()
+        ).then(res => {
+            if (res.success !== true) {
+                console.log(res)
+                attrs_data.innerHTML = 'error';
+                return;
+            }
+            html_attr = '';
+            for (var key in res.data) {
+                html_attr += '<div class="column attr-column">';
+                html_attr += `<div class="attr-group-title">${key}</div>`;
+                html_attr += '<div class="select field control">';
+                html_attr += '<div class="form-group field-complaintform-size_id">';
+
+                html_attr += '<select id="complaintform-size_id" class="input is-primary size" name="attr_ids[]">';
+                for (var attr_id in res.data[key]) {
+                    html_attr += `<option value="${attr_id}">${res.data[key][attr_id]}</option>`;
+                }
+                html_attr += '</select>';
+                html_attr += ' <p class="help-block help-block-error"></p>';
+                html_attr += '</div>';
+                html_attr += ' </div>';
+                html_attr += ' </div>';
+            }
+
+
+
+
+            attrs_data.innerHTML = html_attr;
+
+            console.log(res)
+        }
+        )
+
+})

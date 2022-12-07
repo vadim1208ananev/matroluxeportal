@@ -29,7 +29,7 @@ btn_send.forEach(function (btn) {
             ).then(res => {
                 if(res.status=='ok')
                 {
-                    e.target.innerText='already sent'
+                    e.target.innerText='Отправлено'
                 } else {
                     e.target.innerText='error sending' 
                 }

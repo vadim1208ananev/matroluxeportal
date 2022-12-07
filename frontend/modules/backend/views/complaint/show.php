@@ -20,11 +20,14 @@ $this->params['breadcrumbs'] = [
     <?php if (empty($images)) { ?>
         Фото нет
     <?php } else { ?>
-        <?php foreach ($images as $image) { ?>
+        <?php $i=0; foreach ($images as $key=>$image) { ?>
+            <?php echo ++$i;   ?>
             <div>
-                <img class="fit-picture" src="<?php echo $image;   ?>" alt="Grapefruit slice atop a pile of other slices">
-            <?php }  ?>
+                <img class="fit-picture" src="<?php echo $image;   ?>" alt="Foto">
+           
             </div>
+            <hr>
+            <?php }  ?>
         <?php }  ?>
 
 

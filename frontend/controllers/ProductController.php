@@ -88,6 +88,7 @@ class ProductController extends Controller
           //  dd($data['accSizes']);
             return $this->render('index', $data);
         } elseif ($product->category_id == 3 && $isWardrobe) {
+           
             //wardrobe
 //            https://github.com/creocoder/yii2-nested-sets
 
@@ -205,7 +206,7 @@ class ProductController extends Controller
             ]);
         } elseif ($product->category_id == 3 && !$isWardrobe) {
             //small cabinet furniture
-
+  
             $requiedFields = [];
             $model = new DifferentProductForm();
 
@@ -223,7 +224,7 @@ class ProductController extends Controller
                 ->where(['product_id' => $product_id])
                 ->asArray()
                 ->all(), 'attr_id');
-
+ 
             $attrGroups = AttrGroup::find()
                 ->with('attrGroupDesc')
                 ->joinWith([
@@ -235,6 +236,7 @@ class ProductController extends Controller
                 ->orderBy(['sort_order' => SORT_ASC])
                 ->asArray()
                 ->all();
+              //  dd($ids,$attrGroups);
             $attrs = [];
             foreach ($attrGroups as $key => $group) {
                 if (count($group['attrs']) == 0 || $group['attr_group_id'] == AttrGroup::CATEGORY) {
@@ -247,7 +249,7 @@ class ProductController extends Controller
                 }, []);
                 $requiedFields[] = DifferentProductForm::$values[$group['attrGroupDesc']['name']];
             }
-
+    //dd($attrs);
             return $this->render('different_product', [
                 'p' => $product,
                 'attrs' => $attrs,
@@ -294,6 +296,8 @@ class ProductController extends Controller
         ]);
     }
 
+
+
     public function actionGetProductSizes()
     {
         $post = Yii::$app->request->post();
@@ -301,5 +305,47 @@ class ProductController extends Controller
 
         return json_encode(['success' => true, 'data' => $data,]);
     }
+    public function actionGetProductAttributes()
+    {
+        $post = Yii::$app->request->post();
+        if(!$post['selected_cm_value']) return;
+        $product_id=$post['selected_cm_value'];
+        $ids = ArrayHelper::getColumn(ProductAttr::find()
+                ->where(['product_id' => $product_id])
+                ->asArray()
+                ->all(), 'attr_id');
+ 
+            $attrGroups = AttrGroup::find()
+                ->with('attrGroupDesc')
+                ->joinWith([
+                    'attrs' => function ($query) use ($ids) {
+                        $query->onCondition(['attr.attr_id' => $ids])
+                            ->with('attrDesc');
+                    }
+                ])
+                ->orderBy(['sort_order' => SORT_ASC])
+                ->asArray()
+                ->all();
+              // dd($ids,$attrGroups);
+            $attrs = [];
+            foreach ($attrGroups as $key => $group) {
+                if (count($group['attrs']) <=1 || $group['attr_group_id'] == AttrGroup::CATEGORY) {
+                    unset($attrGroups[$key]);
+                    continue;
+                }
+                $attrs[$group['attrGroupDesc']['name']] = array_reduce($group['attrs'], function ($carry, $item) {
+                    $carry[$item['attrDesc']['attr_id']] = $item['attrDesc']['name'];
+                    return $carry;
+                }, []);
+                $requiedFields[] = DifferentProductForm::$values[$group['attrGroupDesc']['name']];
+            }
+    
+       
+        return json_encode(['success' => true, 'data' => $attrs,'product_id'=>$product_id]);;
+       // $data = ProductSize::getProductSizes([$post['productId']]);
+
+       // return json_encode(['success' => true, 'data' => $data,]);
+    }
+
 
 }

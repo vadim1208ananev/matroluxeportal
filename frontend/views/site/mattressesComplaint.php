@@ -34,8 +34,10 @@ $this->title = 'Заявка на рекламацию';
         <div class="columns is-mobile">
             <div class="column is-one-quarter-tablet is-one-third-mobile">
                 <div class="select field control">
-                    <?= $form->field($model, 'phone_prefix')->dropDownList(array_combine($model::$operators, $model::$operators),
-                        ['class' => 'input is-primary'])->label(false); ?>
+                    <?= $form->field($model, 'phone_prefix')->dropDownList(
+                        array_combine($model::$operators, $model::$operators),
+                        ['class' => 'input is-primary']
+                    )->label(false); ?>
                 </div>
             </div>
             <div class="column">
@@ -47,8 +49,10 @@ $this->title = 'Заявка на рекламацию';
         <div class="columns is-mobile">
             <div class="column is-one-quarter-tablet is-one-third-mobile">
                 <div class="select field control">
-                    <?= $form->field($model, 'phone_extra_prefix')->dropDownList(array_combine($model::$operators, $model::$operators),
-                        ['class' => 'input is-primary'])->label(false); ?>
+                    <?= $form->field($model, 'phone_extra_prefix')->dropDownList(
+                        array_combine($model::$operators, $model::$operators),
+                        ['class' => 'input is-primary']
+                    )->label(false); ?>
                 </div>
             </div>
             <div class="column">
@@ -127,18 +131,40 @@ $this->title = 'Заявка на рекламацию';
 
     <div class="subtitle">Выберите модель, размер, месяц и год покупки</div>
     <div class="box">
+
         <div class="columns">
-            <div class="column">
-                <div class="select field control">
-                    <?= $form->field($model, 'product_id')->dropDownList($products, ['class' => 'input is-primary product'])->label(false); ?>
+            <div class="matras-box">
+                <div>Матрасы</div>
+
+                <div class="column">
+                    <div class="select field control">
+                        <?= $form->field($model, 'product_id')->dropDownList($products, ['class' => 'input is-primary product'])->label(false); ?>
+                    </div>
                 </div>
+                <div class="column">
+                    <div class="select field control">
+                        <?= $form->field($model, 'size_id')->dropDownList([], ['class' => 'input is-primary size'])->label(false); ?>
+                    </div>
+                </div>
+
             </div>
-            <div class="column">
-                <div class="select field control">
-                    <?= $form->field($model, 'size_id')->dropDownList([], ['class' => 'input is-primary size'])->label(false); ?>
+        </div>
+        <!--new  -->
+        <hr>
+        <div class="columns">
+            <div class="matras-box">
+                <div>Корпусная мебель</div>
+                <div class="column cp_column">
+                    <div class="select field control">
+                        <?= $form->field($model, 'product_cm_id')->dropDownList($products_cm, ['class' => 'input is-primary product_cm'])->label(false); ?>
+                    </div>
+                </div>
+                <div id='data_attrs'>Для отображения характеристик выберите товар
                 </div>
             </div>
         </div>
+        <hr>
+        <!--new  -->
         <div class="columns is-mobile">
             <div class="column is-one-quarter-tablet">
                 <div class="select field control">
@@ -171,7 +197,7 @@ $this->title = 'Заявка на рекламацию';
         <?= $form->field($model, 'imageFiles[]')->fileInput(['multiple' => true, 'accept' => 'image/*']) ?>
     </div>
 
-    <?php if (false): ?>
+    <?php if (false) : ?>
         <div class="cart__delivery">
             <div class="columns">
                 <div class="column">
@@ -187,28 +213,32 @@ $this->title = 'Заявка на рекламацию';
                         ->textInput([
                             'autofocus' => true,
                             'placeholder' => 'Телефон',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
                 <div class="column">
                     <?= $form->field($model, 'lastName')
                         ->textInput([
                             'placeholder' => 'Фамилия',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
                 <div class="column">
                     <?= $form->field($model, 'firstName')
                         ->textInput([
                             'placeholder' => 'Имя',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
                 <div class="column">
                     <?= $form->field($model, 'middleName')
                         ->textInput([
                             'placeholder' => 'Отчество',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
             </div>
@@ -229,27 +259,28 @@ $this->title = 'Заявка на рекламацию';
                         <?= $form->field($model, 'city')
                             ->textInput([
                                 'placeholder' => 'Нас. пункт (от 3 букв)',
-                                'class' => 'input is-primary search__city'])
+                                'class' => 'input is-primary search__city'
+                            ])
                             ->label(false) ?>
                     </div>
                 </div>
-                <div class="column is-one-quarter cart-form__item active cart-form__by-hand cart-form__warehouse"
-                     data-search-handler="warehouse">
+                <div class="column is-one-quarter cart-form__item active cart-form__by-hand cart-form__warehouse" data-search-handler="warehouse">
                     <div class="control">
                         <?= $form->field($model, 'warehouse')
                             ->textInput([
                                 'placeholder' => 'Отделение (от 3 букв)',
-                                'class' => 'input is-primary search__warehouse'])
+                                'class' => 'input is-primary search__warehouse'
+                            ])
                             ->label(false) ?>
                     </div>
                 </div>
-                <div class="column is-one-quarter cart-form__item cart-form__by-hand cart-form__doors"
-                     data-search-handler="street">
+                <div class="column is-one-quarter cart-form__item cart-form__by-hand cart-form__doors" data-search-handler="street">
                     <div class="control">
                         <?= $form->field($model, 'street')
                             ->textInput([
                                 'placeholder' => 'Улица (от 3 букв)',
-                                'class' => 'input is-primary search__street'])
+                                'class' => 'input is-primary search__street'
+                            ])
                             ->label(false) ?>
                     </div>
                 </div>
@@ -257,14 +288,16 @@ $this->title = 'Заявка на рекламацию';
                     <?= $form->field($model, 'building')
                         ->textInput([
                             'placeholder' => 'Дом',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
                 <div class="column is-1 cart-form__item">
                     <?= $form->field($model, 'flat')
                         ->textInput([
                             'placeholder' => 'Квартира',
-                            'class' => 'input is-primary'])
+                            'class' => 'input is-primary'
+                        ])
                         ->label(false) ?>
                 </div>
             </div>
@@ -274,3 +307,23 @@ $this->title = 'Заявка на рекламацию';
     <button type="submit" class="button is-primary">Отправить</button>
     <?php ActiveForm::end(); ?>
 </div>
+<style>
+    .product_cm {
+        min-width: 130px;
+    }
+
+    .matras-box {
+        display: flex;
+        gap: 50px;
+        /*flex-wrap: wrap;*/
+    }
+
+    .attr-column {
+        display: flex;
+    }
+
+    #data_attrs {
+        display: flex;
+        flex-wrap: wrap;
+    }
+</style>

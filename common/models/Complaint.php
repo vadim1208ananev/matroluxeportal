@@ -16,6 +16,39 @@ class Complaint extends ActiveRecord
             TimestampBehavior::className(),
         ];
     }
+    public function getType()
+    {
+        $res = '';
+        if ($this->product_id) {
+            $res .= 'Матрасы';
+        }
+        if ($this->product_cm_id) {
+            if (!$res) {
+                $res .= 'Корпусная мебель';
+            } else {
+                $res .= '<br>,Корпусная мебель';
+            }
+        }
+        return $res;
+    }
+    public function getProductcm()
+    {
+        //  return 999;
+        return $this->hasOne(Product::className(), ['product_id' => 'product_cm_id']);
+    }
+    public function getAttrs()
+    {
+        $arr = json_decode($this->attr_ids, 1);
+        if (empty($arr)) return '-';
+
+        $arr = array_map(function ($item) {
+            $attr = Attr::find()->where(['attr_id' => $item])->one();
+            $attr_name=$attr->attrDesc->name;
+            $attr_group_name=$attr->attrGroup->attrGroupDesc->name;
+            return $attr_group_name.':'.$attr_name.'<br>';
+        }, $arr);
+        return implode(',', $arr);
+    }
 
     public function getProduct()
     {
@@ -25,11 +58,13 @@ class Complaint extends ActiveRecord
     {
         return $this->hasOne(Size::className(), ['size_id' => 'size_id']);
     }
-    public function getFio(){
-        return $this->last_name.' '.$this->first_name.' '.$this->middle_name;
+    public function getFio()
+    {
+        return $this->last_name . ' ' . $this->first_name . ' ' . $this->middle_name;
     }
-    public function getTel(){
-        return  $this->phone_prefix.' '.$this->phone;
+    public function getTel()
+    {
+        return  $this->phone_prefix . ' ' . $this->phone;
     }
 
     public function getProductSize()
@@ -78,5 +113,4 @@ class Complaint extends ActiveRecord
         }
         $this->description = $desc;
     }
-
 }
