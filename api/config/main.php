@@ -73,6 +73,7 @@ return [
                 '' => 'site/index',
                 'auth' => 'site/login',
 
+                
 //                'GET profile' => 'profile/index',
 //                'PUT,PATCH profile' => 'profile/update',
 //                'PUT,PATCH order' => 'order/update',
