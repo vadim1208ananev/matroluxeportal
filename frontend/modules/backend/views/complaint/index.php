@@ -13,7 +13,23 @@ $this->params['breadcrumbs'] = [
 
 ?>
 <div class="section container content">
+
+
     <h1>Рекламации</h1>
+    <div class="columns"> 
+        <div class="column is-2 button-box">
+            <button class="button is-primary <?php if($clean_filter['filter']=='matras') { echo "selected_button"; }  ?>">
+                <?= Html::a('Только матрасы', ['complaint/index','filter'=>'matras']+$get, ['class' => 'has-text-white']) ?>
+            </button>
+            <button class="button is-primary <?php if($clean_filter['filter']=='cm') { echo "selected_button"; }  ?>">
+                <?= Html::a('Только корпусная мебель',['complaint/index','filter'=>'cm']+$get, ['class' => 'has-text-white']) ?>
+            </button>
+            <button class="button is-primary">
+                <?= Html::a('Сбросить фильтры',['complaint/index']+$get, ['class' => 'has-text-white']) ?>
+            </button>
+        </div>
+    </div>
+
     <div class="columns is-vcentered item-list">
         <div class="column">ИД</div>
         <div class="column">ФИО</div>
@@ -54,36 +70,45 @@ $this->params['breadcrumbs'] = [
 
 
             <div class="column">
-                <?php  if(!$complaint->is_send) { ?>
-                <button class="button is-primary">
+                <?php if (!$complaint->is_send) { ?>
+                    <button class="button is-primary">
 
-                    <?= Html::a('Отправка', null, ['class' => 'has-text-white sendto1c', 'data-id' => $complaint->complaint_id]) ?>
-                </button>
+                        <?= Html::a('Отправка', null, ['class' => 'has-text-white sendto1c', 'data-id' => $complaint->complaint_id]) ?>
+                    </button>
                 <?php  } else { ?>
                     <button class="button is-primary">
 
-                    <?= Html::a('Отправлено', null, ['class' => 'has-text-white']) ?>
-                </button>
+                        <?= Html::a('Отправлено', null, ['class' => 'has-text-white']) ?>
+                    </button>
 
-                    <?php  }  ?>
+                <?php  }  ?>
             </div>
             <div class="is-clearfix"></div>
         </div>
     <?php endforeach; ?>
     <aside class="level">
-            <div class="level-left">
-                <div class="level-item">
-                    <?= LinkPager::widget([
-                        'pagination' => $pages,
-                        'prevPageLabel' => '<',
-                        'nextPageLabel' => '>',
-                        'maxButtonCount' => 7,
-                        'options' => ['class' => 'pagination category_pagination'],
-                        'activePageCssClass' => 'pagination-link is-current',
-                        'disableCurrentPageButton' => true,
-                        'linkOptions' => ['class' => 'pagination-link'],
-                    ]); ?>
-                </div>
+        <div class="level-left">
+            <div class="level-item">
+                <?= LinkPager::widget([
+                    'pagination' => $pages,
+                    'prevPageLabel' => '<',
+                    'nextPageLabel' => '>',
+                    'maxButtonCount' => 7,
+                    'options' => ['class' => 'pagination category_pagination'],
+                    'activePageCssClass' => 'pagination-link is-current',
+                    'disableCurrentPageButton' => true,
+                    'linkOptions' => ['class' => 'pagination-link'],
+                ]); ?>
             </div>
-        </aside>
+        </div>
+    </aside>
 </div>
+<style>
+    .button-box{
+        display: flex;
+        gap:5px;
+    }
+    .column .selected_button{
+        background-color: red;
+    }
+</style>

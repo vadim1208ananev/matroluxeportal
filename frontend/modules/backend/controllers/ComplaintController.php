@@ -71,12 +71,26 @@ class ComplaintController extends Controller
         if (!Yii::$app->user->can('viewComplaint')) {
             throw new ForbiddenHttpException();
         }
+        $get = Yii::$app->request->get();
+       
         $query = Complaint::find()
             ->orderBy([
                 'complaint_id' => SORT_DESC
             ]);
 
-        $pages = new Pagination(['totalCount' => $query->count(), 'pageSize' => 4]);
+        if ($get['filter'] == 'matras') {
+            $query = $query->where(['NOT', ['product_id' => null]]);
+            $query = $query->andWhere('product_cm_id IS  NULL');
+        }
+        if ($get['filter'] == 'cm') {
+            $query = $query->where(['NOT', ['product_cm_id' => null]]);
+            $query = $query->andWhere('product_id IS  NULL');
+        }
+        $data['clean_filter']=$get;
+        unset($get['filter']);
+        $data['get']=$get;
+     
+        $pages = new Pagination(['totalCount' => $query->count(), 'pageSize' => 6]);
         $pages->pageSizeParam = false;
         $complaints = $query->offset($pages->offset)->limit($pages->limit)->all();
         $data['complaints'] = $complaints;
