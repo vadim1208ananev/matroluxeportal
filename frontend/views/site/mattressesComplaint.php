@@ -315,10 +315,15 @@ $this->title = 'Заявка на рекламацию';
     .matras-box {
         display: flex;
         gap: 50px;
-        /*flex-wrap: wrap;*/
+		 align-items: center;
+		
+        gap: 5px;
+      
     }
 
     .attr-column {
+		  align-items: center;
+    gap: 5px;
         display: flex;
     }
 
@@ -326,4 +331,7 @@ $this->title = 'Заявка на рекламацию';
         display: flex;
         flex-wrap: wrap;
     }
+	.attr-column .select {
+    min-width: 70px;
+}
 </style>
