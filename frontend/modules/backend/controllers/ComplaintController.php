@@ -80,11 +80,11 @@ class ComplaintController extends Controller
 
         if ($get['filter'] == 'matras') {
             $query = $query->where(['NOT', ['product_id' => null]]);
-            $query = $query->andWhere('product_cm_id IS  NULL');
+         //   $query = $query->andWhere('product_cm_id IS  NULL');
         }
         if ($get['filter'] == 'cm') {
             $query = $query->where(['NOT', ['product_cm_id' => null]]);
-            $query = $query->andWhere('product_id IS  NULL');
+       //     $query = $query->andWhere('product_id IS  NULL');
         }
         $data['clean_filter']=$get;
         unset($get['filter']);
