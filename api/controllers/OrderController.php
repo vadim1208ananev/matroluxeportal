@@ -73,6 +73,18 @@ class OrderController extends ActiveController
         $user = Yii::$app->user;
         $isAdmin = $user->getIdentity()->isAdmin();
 
+
+        $root = Yii::getAlias('@webroot');
+        $log_file = dirname(dirname($root)) . '/frontend/runtime/logs/order_log.txt';
+        if (is_file($log_file)) {
+
+            $log_get = json_encode($get, JSON_UNESCAPED_UNICODE);
+            $mess = date('Y-m-d H-i-s', time()) . " START REQUEST- $log_get , Success\n";
+            file_put_contents($log_file, $mess, FILE_APPEND | LOCK_EX);
+        };
+
+
+
         //date
         //todo total['amount'] с портала иногда бывает 0
         if (isset($get['date'])) {
@@ -144,6 +156,18 @@ class OrderController extends ActiveController
                     'delivery' => $o->delivery != null ? ArrayHelper::toArray($o->delivery) : 0
                 ];
             }
+
+
+            $root = Yii::getAlias('@webroot');
+            $log_file = dirname(dirname($root)) . '/frontend/runtime/logs/order_log.txt';
+            if (is_file($log_file)) {
+    
+                $log_get = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $mess = date('Y-m-d H-i-s', time()) . "END RESPONSE- $log_get , Success\n";
+                file_put_contents($log_file, $mess, FILE_APPEND | LOCK_EX);
+            };
+
+
             return $data;
 
 //            //test
@@ -251,6 +275,16 @@ class OrderController extends ActiveController
                 'products' => $products
             ];
         }
+
+        $root = Yii::getAlias('@webroot');
+        $log_file = dirname(dirname($root)) . '/frontend/runtime/logs/order_log.txt';
+        if (is_file($log_file)) {
+
+            $log_get = json_encode($data, JSON_UNESCAPED_UNICODE);
+            $mess = date('Y-m-d H-i-s', time()) . "END RESPONSE- $log_get , Success\n";
+            file_put_contents($log_file, $mess, FILE_APPEND | LOCK_EX);
+        };
+
         return $data;
 
     }
@@ -261,6 +295,15 @@ class OrderController extends ActiveController
         $db = Yii::$app->db;
         $transaction = $db->beginTransaction();
         $bodyParams = Yii::$app->getRequest()->getBodyParams();
+
+        $root = Yii::getAlias('@webroot');
+        $log_file = dirname(dirname($root)) . '/frontend/runtime/logs/order_log_update.txt';
+        if (is_file($log_file)) {
+           $dl=['order_id'=>$id,'bp'=>$bodyParams];
+            $log_get = json_encode($dl, JSON_UNESCAPED_UNICODE);
+            $mess = date('Y-m-d H-i-s', time()) . " START REQUEST- $log_get , Success\n";
+            file_put_contents($log_file, $mess, FILE_APPEND | LOCK_EX);
+        };
 
         try {
             $model = Order::findOne($id);

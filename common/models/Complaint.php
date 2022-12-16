@@ -36,6 +36,23 @@ class Complaint extends ActiveRecord
         //  return 999;
         return $this->hasOne(Product::className(), ['product_id' => 'product_cm_id']);
     }
+    public function getArrtdata()
+    {
+        $arr = json_decode($this->attr_ids, 1);
+        if (empty($arr)) return [];
+        $arr = array_map(function ($item) {
+            $attr = Attr::find()->where(['attr_id' => $item])->one();
+            $attr_name = $attr->attrDesc->name;
+
+            return [
+                'attr_id' => $item,
+                'attr_name' => $attr_name,
+                'attr_1c_id'=>$attr['1c_id']
+
+            ];
+        }, $arr);
+        return $arr;
+    }
     public function getAttrs()
     {
         $arr = json_decode($this->attr_ids, 1);
@@ -43,9 +60,9 @@ class Complaint extends ActiveRecord
 
         $arr = array_map(function ($item) {
             $attr = Attr::find()->where(['attr_id' => $item])->one();
-            $attr_name=$attr->attrDesc->name;
-            $attr_group_name=$attr->attrGroup->attrGroupDesc->name;
-            return $attr_group_name.':'.$attr_name.'<br>';
+            $attr_name = $attr->attrDesc->name;
+            $attr_group_name = $attr->attrGroup->attrGroupDesc->name;
+            return $attr_group_name . ':' . $attr_name . '<br>';
         }, $arr);
         return implode(',', $arr);
     }

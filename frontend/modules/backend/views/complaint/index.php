@@ -16,16 +16,20 @@ $this->params['breadcrumbs'] = [
 
 
     <h1>Рекламации</h1>
-    <div class="columns"> 
+    <div class="columns">
         <div class="column is-2 button-box">
-            <button class="button is-primary <?php if($clean_filter['filter']=='matras') { echo "selected_button"; }  ?>">
-                <?= Html::a('Только матрасы', ['complaint/index','filter'=>'matras']+$get, ['class' => 'has-text-white']) ?>
+            <button class="button is-primary <?php if ($clean_filter['filter'] == 'matras') {
+                                                    echo "selected_button";
+                                                }  ?>">
+                <?= Html::a('Только матрасы', ['complaint/index', 'filter' => 'matras'] + $get, ['class' => 'has-text-white']) ?>
             </button>
-            <button class="button is-primary <?php if($clean_filter['filter']=='cm') { echo "selected_button"; }  ?>">
-                <?= Html::a('Только корпусная мебель',['complaint/index','filter'=>'cm']+$get, ['class' => 'has-text-white']) ?>
+            <button class="button is-primary <?php if ($clean_filter['filter'] == 'cm') {
+                                                    echo "selected_button";
+                                                }  ?>">
+                <?= Html::a('Только корпусная мебель', ['complaint/index', 'filter' => 'cm'] + $get, ['class' => 'has-text-white']) ?>
             </button>
             <button class="button is-primary">
-                <?= Html::a('Сбросить фильтры',['complaint/index']+$get, ['class' => 'has-text-white']) ?>
+                <?= Html::a('Сбросить фильтры', ['complaint/index'] + $get, ['class' => 'has-text-white']) ?>
             </button>
         </div>
     </div>
@@ -40,10 +44,11 @@ $this->params['breadcrumbs'] = [
         <div class="column">Название товара корпусная мебель</div>
         <div class="column">Характеристики корпусной мебели</div>
 
-        <div class="column">Месяц покупки</div>
-        <div class="column">Год покупки</div>
+        <!--  <div class="column">Месяц покупки</div>
+        <div class="column">Год покупки</div>-->
         <div class="column">Тип рекламации</div>
-        <div class="column">Фото</div>
+        <div class="column">Дата создания</div>
+        <div class="column">Подробный просмотр</div>
         <!-- <div class="column">Бонус</div>-->
         <div class="column">Отправка в 1с</div>
     </div>
@@ -60,11 +65,13 @@ $this->params['breadcrumbs'] = [
             <div class="column"><?= $complaint->productcm->name ?></div>
             <div class="column"><?= $complaint->attrs ?></div>
 
-            <div class="column"><?= $complaint->purchase_month ?></div>
-            <div class="column "><?= $complaint->purchase_year ?></div>
+            <!--     <div class="column"><?= $complaint->purchase_month ?></div>
+            <div class="column "><?= $complaint->purchase_year ?></div>-->
             <div class="column "><?= $complaint->type ?></div>
+
+            <div class="column "><?= date('Y-m-d',$complaint->created_at) ?></div>
             <div class="column "> <button class="button is-primary">
-                    <?= Html::a('Фото', ['complaint/show', 'complaint_id' => $complaint->complaint_id], ['class' => 'has-text-white']) ?>
+                    <?= Html::a('Просмотр', ['complaint/show', 'complaint_id' => $complaint->complaint_id], ['class' => 'has-text-white']) ?>
                 </button></div>
 
 
@@ -73,12 +80,12 @@ $this->params['breadcrumbs'] = [
                 <?php if (!$complaint->is_send) { ?>
                     <button class="button is-primary">
 
-                        <?= Html::a('Отправка', null, ['class' => 'has-text-white sendto1c', 'data-id' => $complaint->complaint_id]) ?>
+                        <?= Html::a('Not sending', null, ['class' => 'has-text-white sendto1c', 'data-id' => $complaint->complaint_id]) ?>
                     </button>
                 <?php  } else { ?>
                     <button class="button is-primary">
 
-                        <?= Html::a('Отправлено', null, ['class' => 'has-text-white']) ?>
+                    <?= Html::a('Sending', null, ['class' => 'has-text-white sendto1c', 'data-id' => $complaint->complaint_id]) ?>
                     </button>
 
                 <?php  }  ?>
@@ -104,11 +111,12 @@ $this->params['breadcrumbs'] = [
     </aside>
 </div>
 <style>
-    .button-box{
+    .button-box {
         display: flex;
-        gap:5px;
+        gap: 5px;
     }
-    .column .selected_button{
+
+    .column .selected_button {
         background-color: red;
     }
 </style>

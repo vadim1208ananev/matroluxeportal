@@ -13,12 +13,12 @@ return [
     'controllerNamespace' => 'api\controllers',
   'bootstrap' => ['log',
         'on beforeRequest' => function () {
-            if (!Yii::$app->request->isSecureConnection) {
+       /*     if (!Yii::$app->request->isSecureConnection) {
                 $url = Yii::$app->request->getAbsoluteUrl();
                 $url = str_replace('http:', 'https:', $url);
                 Yii::$app->getResponse()->redirect($url);
                 Yii::$app->end();
-            }
+            }*/
         },
     ],
     'modules' => [
@@ -79,6 +79,8 @@ return [
 //                'PUT,PATCH order' => 'order/update',
 //                ['class' => 'yii\rest\UrlRule', 'controller' => 'post'],
                 'orders/<id:[\d\w\-]+>' => 'order/update',
+                
+                'complaints/<id:[\d\w\-]+>' => 'complaint/update',
 
 //                '<_c:[\w-]+>' => '<_c>/index',
 //                '<_c:[\w-]+>/<id:\d+>' => '<_c>/view',

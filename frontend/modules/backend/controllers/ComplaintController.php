@@ -68,6 +68,7 @@ class ComplaintController extends Controller
      */
     public function actionIndex()
     {
+      
         if (!Yii::$app->user->can('viewComplaint')) {
             throw new ForbiddenHttpException();
         }
@@ -95,7 +96,7 @@ class ComplaintController extends Controller
         $complaints = $query->offset($pages->offset)->limit($pages->limit)->all();
         $data['complaints'] = $complaints;
         $data['pages'] = $pages;
-
+  // dd($complaints);
 
 
         return $this->render('index', $data);
@@ -103,6 +104,8 @@ class ComplaintController extends Controller
 
     public function actionShow($complaint_id)
     {
+        $complaint=  Complaint::find()->where(['complaint_id'=>$complaint_id])->one();
+       
         if (!Yii::$app->user->can('viewComplaint')) {
             throw new ForbiddenHttpException();
         }
@@ -111,7 +114,7 @@ class ComplaintController extends Controller
         $images = glob($dir . '*');
         $images = array_map(function ($item) use ($complaint_id) {
             $file = basename($item);
-            $pattern = '/^' . $complaint_id . '_/';
+            $pattern = '/vvv' . $complaint_id . 'vvv/';
             if (preg_match($pattern, $file)) {
                 return '/uploads/' . $file;
             }
@@ -120,25 +123,30 @@ class ComplaintController extends Controller
 
         return $this->render('show', [
             'images' => $images,
+            'complaint'=> $complaint
         ]);
     }
-    public function out($status, $data)
+    public function out($status, $data,$text='error')
     {
         $item = [
             'status' => $status,
-            'data' => $data
+            'data' => $data,
+            'text'=>$text,
         ];
         return json_encode($item);
     }
 
 
     public function actionSend()
-    {
-        sleep(3);
+    {   
         $post = Yii::$app->request->post();
         if (isset($post['complaint_id'])) {
             $complaint_id = $post['complaint_id'];
-            return $this->out('ok', $complaint_id);
+            $complaint = Complaint::findOne($complaint_id);
+            $complaint->is_send=!$complaint->is_send;
+          $complaint->save();
+           $text=$complaint->is_send?'Sending':'Not Sending';
+            return $this->out('ok',$complaint_id,$text);
         } else {
             return $this->out('error', []);
         }

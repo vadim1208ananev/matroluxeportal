@@ -94,29 +94,29 @@ class SiteController extends Controller
     public function actionIndex()
     {
         $data = [];
-//        $query = Product::getProductsQuery();
-//        $products = $query->all();
-//        $productIds = Product::getProductIds($products);
-//
-//        $filter = Yii::$app->request->get('f');
-//        if ($filter) {
-//            $filter = Attr::parseFilterUrl($filter);
-//            $attrProducts = ProductAttr::getAttrProducts($filter, $productIds);
-//            $productIds = ProductAttr::getProductIdsFilter($filter, $attrProducts);
-//            $query = Product::getProductsQuery($productIds);
-//        }
-//
-//        $pages = new Pagination(['totalCount' => $query->count(), 'pageSize' => 12]);
-//        $pages->pageSizeParam = false;
-//        $products = $query->offset($pages->offset)->limit($pages->limit)->all();
-//        $data['products'] = $products;
-//        $data['pages'] = $pages;
-//
-//        $data['sizes'] = ProductSize::getProductSizes(Product::getProductIds($products)); //чтобы не делать лишнюю работу, ограничиваем пагинацией
-//
-//        $attrIds = ProductAttr::getAttrIds($productIds);
-//        $attrGroupIds = Attr::getAttrGroupIds($attrIds);
-//        $data['attrs'] = Attr::getAttrs($attrGroupIds, $attrIds);
+        //        $query = Product::getProductsQuery();
+        //        $products = $query->all();
+        //        $productIds = Product::getProductIds($products);
+        //
+        //        $filter = Yii::$app->request->get('f');
+        //        if ($filter) {
+        //            $filter = Attr::parseFilterUrl($filter);
+        //            $attrProducts = ProductAttr::getAttrProducts($filter, $productIds);
+        //            $productIds = ProductAttr::getProductIdsFilter($filter, $attrProducts);
+        //            $query = Product::getProductsQuery($productIds);
+        //        }
+        //
+        //        $pages = new Pagination(['totalCount' => $query->count(), 'pageSize' => 12]);
+        //        $pages->pageSizeParam = false;
+        //        $products = $query->offset($pages->offset)->limit($pages->limit)->all();
+        //        $data['products'] = $products;
+        //        $data['pages'] = $pages;
+        //
+        //        $data['sizes'] = ProductSize::getProductSizes(Product::getProductIds($products)); //чтобы не делать лишнюю работу, ограничиваем пагинацией
+        //
+        //        $attrIds = ProductAttr::getAttrIds($productIds);
+        //        $attrGroupIds = Attr::getAttrGroupIds($attrIds);
+        //        $data['attrs'] = Attr::getAttrs($attrGroupIds, $attrIds);
 
         return $this->render('index', $data);
     }
@@ -128,7 +128,7 @@ class SiteController extends Controller
      */
     public function actionLogin()
     {
-		
+
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
@@ -431,7 +431,7 @@ class SiteController extends Controller
     {
         $this->layout = 'simple';
         $request = Yii::$app->request;
-        $complaint = new Complaint();
+        // $complaint = new Complaint();
 
         $model = new ComplaintForm();
         $model->delivery_service_id = 1;
@@ -449,35 +449,43 @@ class SiteController extends Controller
 
         if ($request->isPost) {
             $post = $request->post();
-     // dd($post,UploadedFile::getInstances($model, 'imageFiles'));
+            // dd($post,UploadedFile::getInstances($model, 'imageFiles'));
             $model->load($post);
             $model->imageFiles = UploadedFile::getInstances($model, 'imageFiles');
             if ($model->validate()) {
-//dd($post,$model);
+
                 $attributes = array_merge(json_decode(json_encode($post['ComplaintForm']), true), [
                     'delivery_service_id' => $post['delivery_serv'],
                     'delivery_service_id_to' => $post['delivery_serv_to'],
                     'attr_ids' => json_encode($post['attr_ids']),
                 ]);
-
-           //    dd($attributes,$post);
-
                 unset($attributes['imageFiles']);
-                foreach ($attributes as $index => $attribute) {
-                    if(!$attribute) {continue; }
-                    $complaint->{$index} = $attribute;
+
+                //dd($attributes,$post,$model);
+
+                $divided_attrs = $this->divideDataAttribute($attributes);;
+                $complaint_ids = [];
+                foreach ($divided_attrs as $divided_post) {
+                    $complaint = new Complaint();
+                    foreach ($divided_post as $index => $attribute) {
+                        if (!$attribute) {
+                            continue;
+                        }
+                        $complaint->{$index} = $attribute;
+                    }
+                    $complaint->product_name = Product::findOne($divided_post['product_id'])->name;
+                    $complaint->size_name = Size::findOne($divided_post['size_id'])->name;
+                    $complaint->cleanIfSameAddress();
+                    $complaint->fillInDescription();
+                    $complaint->save(false);
+                    $complaint_ids[]=$complaint->complaint_id;
+                  
                 }
-                $complaint->product_name = Product::findOne($attributes['product_id'])->name;
-                $complaint->size_name = Size::findOne($attributes['size_id'])->name;
-                $complaint->cleanIfSameAddress();
-                $complaint->fillInDescription();
-              //  dd($complaint);
-                $complaint->save(false);
-
-                $model->upload($complaint->complaint_id);
-
+          
+                $id_for_foto='vvv'.implode('vvv',$complaint_ids).'vvv';
+  
+                $model->upload($id_for_foto);
                 $this->redirect(['thanks']);
-
             } else {
                 $errors = $model->errors;
             }
@@ -490,16 +498,16 @@ class SiteController extends Controller
             ->asArray()
             ->all(), 'name');
 
-            $products_cm = ArrayHelper::getColumn(Product::find()
+        $products_cm = ArrayHelper::getColumn(Product::find()
             ->where(['category_id' => 3, 'status' => 1])
             ->indexBy('product_id')
-          //  ->orderBy('name')
+            //  ->orderBy('name')
             ->asArray()
             ->all(), 'name');
-            $products_cm=['Выберите доступный вариант']+$products_cm;
-            $products=['Выберите доступный вариант']+$products;
-          //  array_unshift($products_cm,'Выберите доступный вариант');
-    // dd($products_cm);
+        $products_cm = ['Выберите доступный вариант'] + $products_cm;
+        $products = ['Выберите доступный вариант'] + $products;
+        //  array_unshift($products_cm,'Выберите доступный вариант');
+        // dd($products_cm);
         return $this->render('mattressesComplaint', [
             'model' => $model,
             'products' => $products,
@@ -508,54 +516,78 @@ class SiteController extends Controller
             'years' => range(2010, date('Y')),
         ]);
     }
+    public function divideDataAttribute($attributes)
+    {
+
+        $arr_attributes = [];
+        $need_arr = ['product_id', 'product_cm_id'];
+        $need_size_attr = ['size_id', 'attr_ids'];
+        if ($attributes['product_id'] && $attributes['size_id']) {
+            $runtime_attributes = $attributes;
+            /*    unset($runtime_attributes['product_cm_id']);
+          unset($runtime_attributes['attr_ids']);*/
+            $runtime_attributes['product_cm_id'] = '';
+            $runtime_attributes['attr_ids'] = '';
+            $arr_attributes[] = $runtime_attributes;
+        }
+        if ($attributes['product_cm_id'] && $attributes['attr_ids']) {
+            $runtime_attributes = $attributes;
+            /*unset($runtime_attributes['product_id']);
+        unset($runtime_attributes['size_id']);*/
+            $runtime_attributes['product_id'] = '';
+            $runtime_attributes['size_id'] = '';
+            $arr_attributes[] = $runtime_attributes;
+        }
+
+        return $arr_attributes;
+    }
 
     public function actionService()
     {
-//        $k = 1;
-//
-//        $connection = Yii::$app->getDb();
-//        $command = $connection->createCommand("
-//            select o.order_id order_id, o.user_id, user_id, o.sum sum, o.status, DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') date
-//            from `order` o
-//            where DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') >= '2021-11-22'
-//              and DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') <= '2021-11-29'
-//              and o.status = 4
-//        ");
-//
-//        $result = $command->queryAll();
-//        foreach ($result as $item) {
-//            $bonusIn = BonusIn::findOne(['user_id' => $item['user_id'], 'order_id' => $item['order_id']]);
-//            if (!$bonusIn) {
-//                $bonusIn = new BonusIn();
-//                $bonusIn->user_id = $item['user_id'];
-//                $bonusIn->order_id = $item['order_id'];
-//                $bonusIn->bonus = floor($item['sum'] * 0.05);
-//                $bonusIn->save(false);
-//            } else {
-//                if ($bonusIn->bonus != floor($item['sum'] * 0.05)) {
-//                    $bonusIn->bonus = floor($item['sum'] * 0.05);
-//                    $bonusIn->save(false);
-//                }
-//            }
-//        }
+        //        $k = 1;
+        //
+        //        $connection = Yii::$app->getDb();
+        //        $command = $connection->createCommand("
+        //            select o.order_id order_id, o.user_id, user_id, o.sum sum, o.status, DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') date
+        //            from `order` o
+        //            where DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') >= '2021-11-22'
+        //              and DATE_FORMAT(FROM_UNIXTIME(o.created_at), '%Y-%m-%d') <= '2021-11-29'
+        //              and o.status = 4
+        //        ");
+        //
+        //        $result = $command->queryAll();
+        //        foreach ($result as $item) {
+        //            $bonusIn = BonusIn::findOne(['user_id' => $item['user_id'], 'order_id' => $item['order_id']]);
+        //            if (!$bonusIn) {
+        //                $bonusIn = new BonusIn();
+        //                $bonusIn->user_id = $item['user_id'];
+        //                $bonusIn->order_id = $item['order_id'];
+        //                $bonusIn->bonus = floor($item['sum'] * 0.05);
+        //                $bonusIn->save(false);
+        //            } else {
+        //                if ($bonusIn->bonus != floor($item['sum'] * 0.05)) {
+        //                    $bonusIn->bonus = floor($item['sum'] * 0.05);
+        //                    $bonusIn->save(false);
+        //                }
+        //            }
+        //        }
 
-//        $users = User::find()->all();
-//        foreach ($users as $user) {
-//            $bonus = $user->calcBonus($user->id);
-//            if ($user->bonus != $bonus) {
-//                $user->bonus = $bonus;
-//                $user->save(false);
-//            } else {
-//                $k = 1;
-//            }
-//        }
+        //        $users = User::find()->all();
+        //        foreach ($users as $user) {
+        //            $bonus = $user->calcBonus($user->id);
+        //            if ($user->bonus != $bonus) {
+        //                $user->bonus = $bonus;
+        //                $user->save(false);
+        //            } else {
+        //                $k = 1;
+        //            }
+        //        }
 
-//        $request = Yii::$app->request;
-//        $post = $request->post();
-//        Yii::info([
-//            'isPost' => $request->isPost,
-//            'post' => $post,
-//        ], 'api');
+        //        $request = Yii::$app->request;
+        //        $post = $request->post();
+        //        Yii::info([
+        //            'isPost' => $request->isPost,
+        //            'post' => $post,
+        //        ], 'api');
     }
-
 }
